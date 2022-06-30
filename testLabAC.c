@@ -18,10 +18,17 @@ static const struct {
                  {"2\n{\"{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}\":\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\\\"\"}\n{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}\n{{{{{{{{{{{{{{{{{{{{{{{{}}}{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}{{{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               {"{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{{\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}\n{{{{{{{{{{{{{{{{{{{{{{{{}}}{{{{{{{{{{{{{{{{{{{{{{{{}}}}}}}{\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}"}, 1},
                  {"2\n{\"\\t\":\"\\t\", \"\\n\":\"\\n\"}\n 	 	{\\t} 	 	 	 	 {\\n}\n\\n \\t		   {\\t}.",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               {" 	 		 	 	 	 	 \n\n\\n \\t		   	."}, 1},};
 
+// Сид задаёт узор файла;
+// extra[0] - количество char во входной строке;
+// extra[1] - длина ключей. value - обратная запись ключа (с конца).
+// Ларджи настраиваются через изменение extra[0];
+// количество ключей считается как extra[0] / extra[1] / 4.
+// 30.06.22 7:53 внес изменения в размеры, память увеличилась до 142.5 мб.
+
 static const struct {
     const char *const seed, *const extra[2];
     int n;
-} seedList[] = {{"*******",      "100",   "5"},
+} seedList[] = {{"*******",      "100",   "5"}, // Упрощенные версии тестов ниже
                 {"************", "2000",  "5"},
                 {"*$Oh~H4wQlt1", "11982", "283"},
                 {"Ije~gcFCpWST", "12357", "310"},
@@ -61,11 +68,12 @@ static const struct {
                 {"lLXJ5gK|jteT", "17450", "725"},
                 {"4ks2h?S5$wxA", "18379", "863"},
                 {"Qe%GCHg2HqLx", "10902", "222"},
-                {"8aW4Uyr%WS0v", "16455", "602"}};
+                {"8aW4Uyr%WS0v", "16455", "602"},
+                {"8aW4Uyr%WS0v", "2100000", "50"}};
 
 int strToInt(const char *str) {
     int val = 0;
-    int strLen = strlen(str);
+    unsigned int strLen = strlen(str);
     for (int i = 0; i < strLen; ++i) {
         val = val * 10 + str[i] - '0';
     }
@@ -77,12 +85,12 @@ char *intToStr(int val) {
     char *string = malloc(5);
     char index = 0;
     while (val > 0) {
-        tmp[index++] = val % 10;
+        tmp[index++] = (char) (val % 10);
         val = val / 10;
     }
     string[index] = '\0';
     for (int i = 0; i < index; ++i) {
-        string[index - 1 - i] = tmp[i] + '0';
+        string[index - 1 - i] = (char) (tmp[i] + '0');
     }
     return string;
 }
@@ -99,14 +107,14 @@ static void createStringBySeed(FILE *file, bool isIn) {
     }
     int range = '\\' - '0' - 1;
     char *ordNum;
-    int digits;
-    int seedSize = strlen(seedList[0].seed);
+    unsigned int digits;
+    unsigned int seedSize = strlen(seedList[0].seed);
     char pattern[stringCount][extra1 + 1];
     for (int i = 0; i < stringCount; ++i) {
         ordNum = intToStr(i);
         digits = strlen(ordNum);
         for (int j = 0; j < extra1 - digits; ++j) {
-            pattern[i][j] = ((i * extra1 + j) * seedList[seedN].seed[j % seedSize] + (i * extra1 + j)) % range + '0';
+            pattern[i][j] = (char) (((i * extra1 + j) * seedList[seedN].seed[j % seedSize] + (i * extra1 + j)) % range + '0');
         }
         for (int j = 0; j < digits; ++j) {
             pattern[i][extra1 - digits + j] = ordNum[j];
@@ -222,7 +230,7 @@ static int CheckFromArray(void) {
     fclose(out);
     printf("%s\n", status);
     ++testN;
-    seedN = testN % (sizeof(testInOut) / sizeof(testInOut[0]));
+    seedN = (int) (testN - (sizeof(testInOut) / sizeof(testInOut[0])));
     return status == Fail;
 }
 
@@ -245,5 +253,5 @@ int GetTestTimeout() {
 }
 
 size_t GetTestMemoryLimit() {
-    return 9961472; // 9.5 Mb
+    return 9961472*15; // 9.5 * 15 = 142.5 Mb
 }
